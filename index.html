@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Thị Nở – Demo PWA</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+  body{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;margin:0;background:#fff;color:#111}
+  header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:12px 16px;display:flex;gap:12px;align-items:center}
+  header img{width:28px;height:28px;border-radius:6px}
+  .pill{margin-left:auto;padding:6px 10px;border:1px solid #eee;border-radius:999px;font-size:12px}
+  .tabs{display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid #eee;overflow:auto}
+  .tab{padding:8px 12px;border-radius:12px;border:1px solid #eee;white-space:nowrap}
+  .tab.active{background:#111;color:#fff;border-color:#111}
+  main{padding:16px;max-width:900px;margin:auto}
+  .card{border:1px solid #eee;border-radius:12px;padding:14px;margin:12px 0}
+  button{border:none;border-radius:10px;padding:10px 14px;background:#111;color:#fff}
+  .muted{color:#666;font-size:13px}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .row > *{flex:1;min-width:260px}
+</style>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js');
+    });
+  }
+  function speak(text){
+    const utter = new SpeechSynthesisUtterance(text);
+    // Prefer Vietnamese voice if available
+    const voices = speechSynthesis.getVoices();
+    const vi = voices.find(v=>/vi/i.test(v.lang)) || voices[0];
+    if(vi) utter.voice = vi;
+    utter.rate = 1.02; utter.pitch = 1.0;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utter);
+  }
+  function startListen(){
+    const out = document.getElementById('voice-output');
+    const status = document.getElementById('voice-status');
+    const SpeechReco = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SpeechReco){
+      status.textContent = 'Thiết bị không hỗ trợ nhận giọng nói. Dùng iOS 16.4+ Safari hoặc Chrome Android.';
+      return;
+    }
+    const rec = new SpeechReco();
+    rec.lang = 'vi-VN';
+    rec.interimResults = true;
+    rec.continuous = false;
+    status.textContent = 'Đang nghe...';
+    rec.onresult = (e)=>{
+      let s='';
+      for(let i=0;i<e.results.length;i++){ s += e.results[i][0].transcript + ' '; }
+      out.value = s.trim();
+    };
+    rec.onend = ()=>{ status.textContent = 'Đã dừng nghe.'; };
+    rec.onerror = (e)=>{ status.textContent = 'Lỗi: ' + e.error; };
+    rec.start();
+  }
+  function respond(){
+    const text = document.getElementById('voice-output').value || 'Anh cần em giúp gì ạ?';
+    const reply = 'Dạ em nghe anh. Em là Thị Nở, em đã nhận được: ' + text;
+    document.getElementById('reply').textContent = reply;
+    speak(reply);
+  }
+</script>
+</head>
+<body>
+  <header>
+    <img src="icon-192.png" alt="Thị Nở">
+    <strong>Thị Nở</strong>
+    <span class="pill">Demo PWA</span>
+  </header>
+  <div class="tabs">
+    <div class="tab active">Chứng khoán</div>
+    <div class="tab">Tin tức</div>
+    <div class="tab">Tài liệu</div>
+    <div class="tab">Tiếng Anh</div>
+    <div class="tab">Cài đặt</div>
+  </div>
+  <main>
+    <div class="card">
+      <h3>Xin chào 👋</h3>
+      <p><strong>Dạ em nghe anh.</strong> Đây là bản demo cài như app thật trên iPhone/Android.</p>
+      <p class="muted">PWA đã bật offline cache, icon & splash chuẩn iOS.</p>
+    </div>
+
+    <div class="row">
+      <div class="card">
+        <h4>🎙️ Nói chuyện (voice-to-voice)</h4>
+        <p class="muted">Nhấn “Bắt đầu nghe”, nói yêu cầu của anh → Em sẽ lặp lại bằng giọng nói.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button onclick="startListen()">Bắt đầu nghe</button>
+          <button onclick="respond()">Trả lời bằng giọng</button>
+        </div>
+        <div id="voice-status" class="muted" style="margin-top:8px"></div>
+        <textarea id="voice-output" rows="2" style="width:100%;margin-top:8px" placeholder="Nội dung em nghe được sẽ hiện ở đây..."></textarea>
+        <div id="reply" class="muted" style="margin-top:8px"></div>
+      </div>
+      <div class="card">
+        <h4>🔊 Nghe giọng nữ miền Tây</h4>
+        <p class="muted">Bấm để nghe câu chào mẫu.</p>
+        <button onclick="speak('Dạ em nghe anh. Em là Thị Nở, trợ lý của anh đây nè.')">Phát giọng mẫu</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4>📲 Hướng dẫn cài vào màn hình chính</h4>
+      <p><strong>iPhone (Safari)</strong>: Share → Add to Home Screen → đặt tên “Thị Nở”.</p>
+      <p><strong>Android (Chrome)</strong>: Menu (⋮) → Add to Home Screen → đặt tên “Thị Nở”.</p>
+    </div>
+  </main>
+</body>
+</html>
